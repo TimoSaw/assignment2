@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import GUI from 'lil-gui';
 
+
 let camera, scene, renderer, raycaster, controls;
 const cylinders = [];
 const mouse = new THREE.Vector2();
@@ -30,7 +31,7 @@ function main() {
     });
   });
 
-  gui.add(parameters, 'numberOfCylinders', 2, 100, 1).name('Number of Cylinders').onChange((value) => {
+  gui.add(parameters, 'numberOfCylinders', 2, 10, 1).name('Number of Cylinders').onChange((value) => {
     updateNumberOfCylinders(value);
   });
 
@@ -61,7 +62,7 @@ function main() {
   document.addEventListener('click', onClick);
 
   const sphereGeometry = new THREE.SphereGeometry(30, 16, 8);
-  const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
   sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
   sphere.position.set(0, 0, 0);
   scene.add(sphere);
@@ -76,7 +77,7 @@ function main() {
 function addCylinder() {
   const randomPoint = getRandomPointOnSphere(sphere);
   const direction = new THREE.Vector3().copy(randomPoint).sub(sphere.position);
-  const cylinderGeometry = new THREE.CylinderGeometry(.2, .2, parameters.cylinderLength, 16);
+  const cylinderGeometry = new THREE.CylinderGeometry(1, 1, parameters.cylinderLength, 16);
   const cylinderMaterial = new THREE.MeshPhysicalMaterial({ color: 0xff0000 });
   const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
   cylinder.position.set(0, 0, 0);
@@ -149,8 +150,7 @@ function animate() {
     cylinders.forEach(otherCylinder => {
       if (cylinder !== otherCylinder) {
         const distance = cylinder.position.distanceTo(otherCylinder.position);
-        // Adjust the minimum distance for collision detection
-        const minDistance = (cylinder.geometry.parameters.height + otherCylinder.geometry.parameters.height) / 4;
+        const minDistance = (cylinder.geometry.parameters.height + otherCylinder.geometry.parameters.height) / 2;
         if (distance < minDistance) {
           // Move the cylinders slightly apart to avoid sticking
           const moveDistance = minDistance - distance;
@@ -181,4 +181,35 @@ function animate() {
   controls.update();
 }
 
+
+
+
 main();
+
+function checkForIntersections() {
+  for (let i = 0; i < cylinders.length; i++) {
+      for (let j = i + 1; j < cylinders.length; j++) {
+          cylinders[i].userData.obb = new OBB();
+          cylinders[j].userData.obb = new OBB();
+
+          cylinders[i].updateMatrix();
+          cylinders[i].updateMatrixWorld();
+          cylinders[i].userData.obb.copy(cylinders[i].geometry.userData.obb);
+          cylinders[i].userData.obb.applyMatrix4(cylinders[i].matrixWorld);
+
+          cylinders[j].updateMatrix();
+          cylinders[j].updateMatrixWorld();
+          cylinders[j].userData.obb.copy(cylinders[j].geometry.userData.obb);
+          cylinders[j].userData.obb.applyMatrix4(cylinders[j].matrixWorld);
+
+          const obb1 = cylinders[i].userData.obb;
+          const obb2 = cylinders[j].userData.obb;
+
+          if (obb1.intersectsOBB(obb2)) {
+              console.log(`Intersection detected between Cylinder ${i} and Cylinder ${j}`);
+          } else {
+              console.log(`No intersection detected between Cylinder ${i} and Cylinder ${j}`);
+          }
+      }
+  }
+}

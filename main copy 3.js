@@ -30,7 +30,7 @@ function main() {
     });
   });
 
-  gui.add(parameters, 'numberOfCylinders', 2, 100, 1).name('Number of Cylinders').onChange((value) => {
+  gui.add(parameters, 'numberOfCylinders', 2, 10, 1).name('Number of Cylinders').onChange((value) => {
     updateNumberOfCylinders(value);
   });
 
@@ -61,7 +61,7 @@ function main() {
   document.addEventListener('click', onClick);
 
   const sphereGeometry = new THREE.SphereGeometry(30, 16, 8);
-  const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
   sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
   sphere.position.set(0, 0, 0);
   scene.add(sphere);
@@ -76,7 +76,7 @@ function main() {
 function addCylinder() {
   const randomPoint = getRandomPointOnSphere(sphere);
   const direction = new THREE.Vector3().copy(randomPoint).sub(sphere.position);
-  const cylinderGeometry = new THREE.CylinderGeometry(.2, .2, parameters.cylinderLength, 16);
+  const cylinderGeometry = new THREE.CylinderGeometry(1, 1, parameters.cylinderLength, 16);
   const cylinderMaterial = new THREE.MeshPhysicalMaterial({ color: 0xff0000 });
   const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
   cylinder.position.set(0, 0, 0);
