@@ -12,7 +12,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "gh-pages": "^6.1.0",
+    "gh-pages": "^6.1.1",
     "vite": "^4.4.5"
   },
   "dependencies": {
