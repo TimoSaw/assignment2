@@ -8,30 +8,25 @@ const mouse = new THREE.Vector2();
 let sphere;
 
 const parameters = {
+  speed: 0.1, // Initial speed value
+  numberOfCylinders: 2,
   cylinderLength: 10,
-  numberOfCylinders: 2
+  sphereRadius: 30 // Initial sphere radius
 };
 
 function main() {
   const gui = new GUI();
 
-  gui.add(parameters, 'cylinderLength', 1, 50, 1).name('Cylinder Length').onChange((value) => {
-    cylinders.forEach(cylinder => {
-      const directionToSphere = new THREE.Vector3().copy(sphere.position).sub(cylinder.position).normalize();
-      const heightChange = value - cylinder.geometry.parameters.height;
-      const newHeight = Math.max(0, heightChange * directionToSphere.dot(cylinder.up));
+  // Add a slider to adjust the cylinder velocity
+  gui.add(parameters, 'speed', 0.1, 1, 0.1).name('Cylinder Velocity');
 
-      const currentPosition = cylinder.position.clone();
-      const newPosition = currentPosition.clone().add(directionToSphere.clone().multiplyScalar(newHeight));
-
-      cylinder.geometry.dispose();
-      cylinder.geometry = new THREE.CylinderGeometry(1, 1, value, 16);
-      cylinder.position.copy(newPosition);
-    });
+  gui.add(parameters, 'numberOfCylinders', 2, 1000, 1).name('Number of Cylinders').onChange((value) => {
+    updateNumberOfCylinders(value);
   });
 
-  gui.add(parameters, 'numberOfCylinders', 2, 100, 1).name('Number of Cylinders').onChange((value) => {
-    updateNumberOfCylinders(value);
+  // Add a slider to adjust the sphere radius
+  gui.add(parameters, 'sphereRadius', 10, 100, 1).name('Sphere Radius').onChange((value) => {
+    updateSphereRadius(value);
   });
 
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
@@ -60,7 +55,7 @@ function main() {
   window.addEventListener('resize', onWindowResize);
   document.addEventListener('click', onClick);
 
-  const sphereGeometry = new THREE.SphereGeometry(30, 16, 8);
+  const sphereGeometry = new THREE.SphereGeometry(parameters.sphereRadius, 16, 8);
   const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
   sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
   sphere.position.set(0, 0, 0);
@@ -82,7 +77,7 @@ function addCylinder() {
   cylinder.position.set(0, 0, 0);
   cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize());
   cylinder.position.add(direction.clone().multiplyScalar(parameters.cylinderLength / 2));
-  cylinder.velocity = new THREE.Vector3(0, 0, 0.1);
+  cylinder.velocity = new THREE.Vector3(0, 0, parameters.speed); // Initial velocity
   scene.add(cylinder);
   cylinders.push(cylinder);
 }
@@ -137,12 +132,23 @@ function onWindowResize() {
   controls.update();
 }
 
+function updateSphereRadius(radius) {
+  parameters.sphereRadius = radius;
+  // Update sphere radius
+  sphere.geometry.dispose();
+  sphere.geometry = new THREE.SphereGeometry(radius, 16, 8);
+  sphere.geometry.verticesNeedUpdate = true;
+  sphere.geometry.elementsNeedUpdate = true;
+  sphere.geometry.computeBoundingSphere();
+}
+
+
 function animate() {
   requestAnimationFrame(animate);
 
   cylinders.forEach(cylinder => {
     const direction = new THREE.Vector3(0, 1, 0).applyQuaternion(cylinder.quaternion);
-    const velocity = direction.clone().multiplyScalar(cylinder.velocity.z);
+    const velocity = direction.clone().multiplyScalar(cylinder.velocity.z * parameters.speed); // Update velocity with the GUI slider
     cylinder.position.add(velocity);
 
     // Detect intersection with other cylinders
@@ -159,9 +165,15 @@ function animate() {
           cylinder.position.add(moveVector);
           otherCylinder.position.sub(moveVector);
 
-          // Change direction upon intersection
-          cylinder.velocity.z *= -1;
-          otherCylinder.velocity.z *= -1;
+          // Adjust direction only if velocities have the same sign (same direction)
+          if (cylinder.velocity.z * otherCylinder.velocity.z > 0) {
+            // Change direction upon intersection
+            cylinder.velocity.z *= -1;
+            otherCylinder.velocity.z *= -1;
+
+            // Toggle visibility when intersecting with other cylinders
+            cylinder.visible = !cylinder.visible;
+          }
         }
       }
     });
@@ -173,12 +185,21 @@ function animate() {
     const distance1 = end1.distanceTo(sphere.position);
     const distance2 = end2.distanceTo(sphere.position);
     if (distance1 > sphereRadius || distance2 > sphereRadius) {
-      cylinder.velocity.z *= -1;
+      // Adjust direction only if velocity has the same sign (same direction)
+      if (cylinder.velocity.z * parameters.speed > 0) {
+        // Change direction upon intersection with the sphere
+        cylinder.velocity.z *= -1;
+        // Update direction based on the new velocity
+        direction.copy(cylinder.velocity).normalize();
+      }
     }
   });
 
   renderer.render(scene, camera);
   controls.update();
 }
+
+
+
 
 main();
